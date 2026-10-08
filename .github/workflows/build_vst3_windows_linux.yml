@@ -22,7 +22,7 @@ jobs:
         shell: pwsh
         run: |
           $packages = @(Get-ChildItem -File -Filter 'METTAVOXAD_2.1.1_ENVIO_SIMPLES*.zip')
-          if ($packages.Count -eq 1) {
+          if ($packages.Count -eq 1 -and !(Test-Path 'CMakeLists.txt')) {
             Expand-Archive -LiteralPath $packages[0].FullName -DestinationPath . -Force
           } elseif ($packages.Count -gt 1) {
             throw 'Mantenha somente um pacote METTAVOXAD_2.1.1_ENVIO_SIMPLES.zip na raiz.'
@@ -96,7 +96,7 @@ jobs:
           packages = list(Path('.').glob('METTAVOXAD_2.1.1_ENVIO_SIMPLES*.zip'))
           if len(packages) > 1:
               raise SystemExit('Mantenha somente um pacote ENVIO_SIMPLES.zip na raiz.')
-          if packages:
+          if packages and not Path('CMakeLists.txt').is_file():
               with zipfile.ZipFile(packages[0]) as archive:
                   archive.extractall('.')
           for name in ['CMakeLists.txt', 'Source/PluginProcessor.cpp', 'Source/LegacyVstWrapper.cpp', 'Tests/DspChecks.cpp']:
