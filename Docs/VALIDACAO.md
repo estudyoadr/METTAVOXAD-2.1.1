@@ -1,19 +1,33 @@
-# Validacao da entrega 2.1.1
+METTAVOXAD 2.1.1 — INSTALADORES WINDOWS
 
-Conferencia estatica realizada em 08/10/2026:
-- Os quatro bancos de seis presets sao identicos, caractere por caractere, aos bancos da 2.1.0.
-- Os programas globais e o preset Default foram preservados.
-- Workflow YAML lido corretamente; matriz Windows x86/x64 presente.
-- COPIAR_WORKFLOW_GITHUB.txt e identico ao workflow incluido.
+24 presets originais preservados: seis em cada uma das quatro abas.
 
-Compilacao, DSP, interface e instaladores **ainda nao executados para esta versao**.
-O ambiente desta entrega nao possui cmake/JUCE para compilacao local.
-Os testes existentes foram ajustados para capturar a interface em 660 x 330 e verificar
-os controles tambem em 990 x 495. O workflow executa os testes antes de publicar
-os artifacts Windows. O teste de upgrade verifica substituicao da DLL, atualizacao
-do registro para 2.1.1 e remocao de arquivo VST3 obsoleto da fixture 2.1.0.
-A fixture usa a DLL da compilacao atual para simular a instalacao antiga; nao
-representa um teste com o binario real distribuido da 2.1.0.
+INSTALACAO
+1. Feche o Sound Forge e os outros programas de audio.
+2. Use x86 para Sound Forge de 32 bits (incluindo Sound Forge 8).
+   Use x64 para hosts de 64 bits. A arquitetura do host define a escolha,
+   mesmo quando o Windows e de 64 bits.
+3. Execute o Setup.exe correspondente. Nao e necessario compilar nada.
+4. Abra o host e atualize a busca por plugins. Procure METTAVOXAD21.
+5. Se necessario, inclua o diretorio VST2 mostrado pelo instalador na busca do host.
 
-Os resultados e screenshots em Historico_2.1.0 sao exclusivamente da versao anterior.
-A compatibilidade real com Sound Forge precisa ser confirmada pelo usuario.
+VALIDACAO CONCLUIDA EM 08/10/2026
+Compilacao DLL/VST3, carregamento legado, audio/estado, 24 presets,
+16 combinacoes de modulos, Autotune, Voz Robo, interface 660x330 e 990x495,
+geracao EXE e atualizacao do instalador: PASS em x86 e x64.
+Capturas reais e logs incluidos neste pacote.
+A fixture de atualizacao usa a DLL atual para simular a versao antiga;
+nao e uma execucao do binario historico real da 2.1.0.
+A verificacao em Sound Forge/Samplitude/Reaper no computador do usuario
+continua necessaria. Os testes automaticos nao substituem essa verificacao.
+
+CORRECOES FINAIS
+- Workflow renomeado para .yml sem ponto extra.
+- DLL x86 exporta VSTPluginMain e main usando LegacyVst.def.
+- Fontes rastreados no GitHub tem prioridade sobre o ZIP antigo.
+- Nenhum arquivo Source foi alterado; efeitos, presets e identidade preservados.
+
+GITHUB
+https://github.com/estudyoadr/METTAVOXAD-2.1.1
+Commit validado: 3bcaa43acf13490e22b66c6e63f2416c2b23e416
+Testes: https://github.com/estudyoadr/METTAVOXAD-2.1.1/actions/runs/37853256436

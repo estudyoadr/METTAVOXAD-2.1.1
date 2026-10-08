@@ -1,42 +1,33 @@
-PONTO DE RETOMADA — 08/10/2026 — METTAVOXAD 2.1.1
+METTAVOXAD 2.1.1 — INSTALADORES WINDOWS
 
-INSTRUCAO PARA UM NOVO CHAT
-Anexe este ZIP e envie:
-"Continue o MettaVoxAD a partir deste pacote. Leia RETOMAR_PROJETO.txt e
-Docs/VALIDACAO.md. Mantenha exatamente os 24 presets originais.
-Confira o GitHub Actions e corrija eventuais falhas ate gerar os instaladores
-Windows x86 e x64. Nao recomece o projeto. Meu repositorio e: [cole o link]."
+24 presets originais preservados: seis em cada uma das quatro abas.
 
-ORIGEM
-Codigo recuperado de METTAVOXAD_2.1.0_ENVIO_SIMPLES.zip.
-A copia de trabalho 2.1.1 citada anteriormente nao foi localizada.
-As alteracoes desta entrega foram aplicadas novamente sobre o pacote recuperado.
-A solicitacao mais recente do usuario substitui a ampliacao dos presets:
-MANTER 24 PRESETS, seis em cada aba, com nomes e valores originais.
-Programas globais e identidade do plugin tambem preservados.
+INSTALACAO
+1. Feche o Sound Forge e os outros programas de audio.
+2. Use x86 para Sound Forge de 32 bits (incluindo Sound Forge 8).
+   Use x64 para hosts de 64 bits. A arquitetura do host define a escolha,
+   mesmo quando o Windows e de 64 bits.
+3. Execute o Setup.exe correspondente. Nao e necessario compilar nada.
+4. Abra o host e atualize a busca por plugins. Procure METTAVOXAD21.
+5. Se necessario, inclua o diretorio VST2 mostrado pelo instalador na busca do host.
 
-ALTERACOES NO CODIGO DESTA ENTREGA
-- Painel padrao 660 x 330; redimensionamento ate 990 x 495.
-- Quatro abas mantidas. Knobs menores, lisos, com brilho discreto.
-- Dois medidores de saida usam RMS dos canais esquerdo/direito separadamente.
-- LEDs dos modulos acompanham nivel de saida quando ativos.
-- Retangulo inicial do editor legado corrigido para 660 x 330.
-- Versao do projeto e do instalador 2.1.1; nome DLL/VST3 e AppId preservados.
-- Teste de atualizacao contempla fixture 2.1.0 e arquivo VST3 obsoleto.
-- Relatorios e capturas da 2.1.0 estao em Docs/Historico_2.1.0.
-  Sao historicos; nao comprovam testes desta versao.
+VALIDACAO CONCLUIDA EM 08/10/2026
+Compilacao DLL/VST3, carregamento legado, audio/estado, 24 presets,
+16 combinacoes de modulos, Autotune, Voz Robo, interface 660x330 e 990x495,
+geracao EXE e atualizacao do instalador: PASS em x86 e x64.
+Capturas reais e logs incluidos neste pacote.
+A fixture de atualizacao usa a DLL atual para simular a versao antiga;
+nao e uma execucao do binario historico real da 2.1.0.
+A verificacao em Sound Forge/Samplitude/Reaper no computador do usuario
+continua necessaria. Os testes automaticos nao substituem essa verificacao.
 
-ESTADO REAL
-Conferencia estatica dos presets e workflow passou.
-Sem compilacao local desta versao: cmake e JUCE indisponiveis neste ambiente.
-Nenhum EXE 2.1.1 foi gerado ou testado nesta entrega.
-Workflow incluido: compilacao, smoke test legado, DSP/UI, instalador e upgrade.
-A execucao desses testes ainda depende do GitHub Actions.
+CORRECOES FINAIS
+- Workflow renomeado para .yml sem ponto extra.
+- DLL x86 exporta VSTPluginMain e main usando LegacyVst.def.
+- Fontes rastreados no GitHub tem prioridade sobre o ZIP antigo.
+- Nenhum arquivo Source foi alterado; efeitos, presets e identidade preservados.
 
-PROXIMOS PASSOS
-1. Enviar o ZIP e atualizar o workflow conforme COMECE_AQUI_ENVIO_SIMPLES.txt.
-2. Conferir os logs das duas arquiteturas. Corrigir falhas, se houver.
-3. Inspecionar as quatro capturas reais geradas pelo teste DSP/UI.
-4. Baixar e conferir os instaladores gerados.
-5. Usuario testar tamanho, audio, Autotune e Voz Robo no Sound Forge.
-6. So declarar finalizado depois das validacoes.
+GITHUB
+https://github.com/estudyoadr/METTAVOXAD-2.1.1
+Commit validado: 3bcaa43acf13490e22b66c6e63f2416c2b23e416
+Testes: https://github.com/estudyoadr/METTAVOXAD-2.1.1/actions/runs/37853256436
