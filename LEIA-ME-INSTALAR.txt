@@ -1,0 +1,3 @@
+Para esta entrega 2.1.1, siga COMECE_AQUI_ENVIO_SIMPLES.txt.
+Estado dos testes: Docs/VALIDACAO.md.
+Retomada entre chats: RETOMAR_PROJETO.txt.

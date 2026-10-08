@@ -1,0 +1,26 @@
+METTAVOXAD 2.1.1 — PACOTE DE CODIGO PARA O GITHUB
+
+Este ZIP NAO e um instalador EXE. O GitHub Actions vai compilar e testar.
+Os 24 presets originais foram preservados, sem alterar seus valores.
+
+PASSO A PASSO
+1. No seu repositorio, clique Add file > Upload files.
+2. Envie METTAVOXAD_2.1.1_ENVIO_SIMPLES.zip SEM extrair.
+3. Clique Commit changes.
+4. Extraia uma copia do ZIP no computador e abra COPIAR_WORKFLOW_GITHUB.txt.
+5. No GitHub abra .github/workflows/build_vst3_windows_linux.yml.
+6. Clique no lapis e substitua TODO o texto pelo conteudo de COPIAR_WORKFLOW_GITHUB.txt deste ZIP.
+   Se o arquivo nao existir, use Add file > Create new file e informe esse caminho completo.
+7. Salve em Commit changes na branch main ou master.
+8. Abra Actions e acompanhe a execucao NOVA, gerada por esse commit.
+   Nao use Re-run de uma execucao antiga.
+9. Quando Windows x86 e Windows x64 estiverem verdes, baixe os artifacts:
+   METTAVOXAD21-Windows-x86 e METTAVOXAD21-Windows-x64.
+10. Extraia o artifact e procure o EXE em Installer/Windows/Output:
+    mettavoxad_2.1.1_x86_Setup.exe ou mettavoxad_2.1.1_x64_Setup.exe.
+11. Feche o Sound Forge antes de instalar. Sound Forge 8 usa x86,
+    mesmo quando o Windows e de 64 bits.
+
+Se der erro no Actions, abra o passo vermelho e copie o trecho final do log.
+Nao altere codigo aleatoriamente. Guarde este ZIP e o link do repositorio.
+Se o chat for interrompido, veja RETOMAR_PROJETO.txt.

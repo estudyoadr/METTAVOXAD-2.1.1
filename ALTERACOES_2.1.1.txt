@@ -1,0 +1,6 @@
+METTAVOXAD 2.1.1
+Painel compacto; knobs lisos; LEDs de atividade; medidor RMS L/R.
+24 presets originais mantidos exatamente.
+Geracao de instaladores Windows x86/x64 via GitHub Actions.
+Teste de upgrade 2.1.0 incluido. Compilacao pendente no GitHub.
+Leia COMECE_AQUI_ENVIO_SIMPLES.txt e RETOMAR_PROJETO.txt.
