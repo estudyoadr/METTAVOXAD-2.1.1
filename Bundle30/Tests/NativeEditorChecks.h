@@ -2,6 +2,7 @@
 #include "LegacyVstAbi.h"
 #include <windows.h>
 #include <thread>
+#include <string>
 #include <set>
 #include <vector>
 #include <fstream>

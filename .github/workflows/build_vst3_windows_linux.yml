@@ -82,6 +82,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: METTAVOXAD21-native-validation-${{ matrix.arch }}
+          path: |
+            previews_${{ matrix.arch }}/*
+            *_${{ matrix.arch }}.txt
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: METTAVOXAD21-upgrade-logs-${{ matrix.arch }}
           path: ${{ runner.temp }}/mettavoxad_upgrade_${{ matrix.arch }}/*.log
           if-no-files-found: warn

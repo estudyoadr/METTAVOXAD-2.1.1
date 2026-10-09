@@ -1,4 +1,4 @@
-# MettaVoxAD 3.0.1 Bundle — retoque vocal e identidade Metta
+# MettaVoxAD 3.0.2 Bundle — retoque vocal e identidade Metta
 
 Sete plugins independentes, DLL legada e VST3, Windows x86 e x64.
 Instale a arquitetura do HOST: Sound Forge 8 usa x86, mesmo em Windows 64 bits.
@@ -35,7 +35,7 @@ Crossovers: https://docs.juce.com/master/classjuce_1_1dsp_1_1LinkwitzRileyFilter
 Loudness: https://www.itu.int/rec/R-REC-BS.1770
 
 
-## Vocal 3.0.1 — perfis Corpo 87 e Tubo 12
+## Vocal 3.0.2 — perfis Corpo 87 e Tubo 12
 O menu de timbre fica a direita do menu de presets. Sao perfis tonais originais,
 nao respostas medidas de AKG/Neumann nem modelos fisicos completos de microfones.
 Corpo 87: reforco largo em 105 Hz, presenca em 3.4 kHz e ar em 12 kHz.
