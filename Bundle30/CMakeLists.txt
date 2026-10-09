@@ -9,11 +9,21 @@ endif()
 include(FetchContent)
 FetchContent_Declare(JUCE GIT_REPOSITORY https://github.com/juce-framework/JUCE.git GIT_TAG 8.0.4 GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(JUCE)
-# The plugin client normally compiles its JUCE dependencies in every product.
-# All seven products link those implementations from mv3core instead; retain
-# the client module's own definitions and each format wrapper source.
-set_property(TARGET juce_audio_plugin_client PROPERTY INTERFACE_LINK_LIBRARIES "")
-add_library(mv3core STATIC Source/Processor.cpp Source/Editor.cpp)
+# JUCE module interface sources would otherwise be compiled again by every
+# consumer. Keep module headers/definitions/system libraries, but materialise
+# implementation sources exactly once in the shared static core.
+set(MV_MODULES juce_audio_utils juce_dsp juce_audio_processors juce_audio_formats
+    juce_audio_devices juce_audio_basics juce_gui_extra juce_gui_basics
+    juce_graphics juce_events juce_data_structures juce_core)
+set(MV_MODULE_SOURCES)
+foreach(module IN LISTS MV_MODULES)
+ get_target_property(module_sources ${module} INTERFACE_SOURCES)
+ if(module_sources)
+  list(APPEND MV_MODULE_SOURCES ${module_sources})
+ endif()
+ set_property(TARGET ${module} PROPERTY INTERFACE_SOURCES "")
+endforeach()
+add_library(mv3core STATIC Source/Processor.cpp Source/Editor.cpp ${MV_MODULE_SOURCES})
 target_include_directories(mv3core PUBLIC Source)
 target_compile_definitions(mv3core PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(mv3core PRIVATE juce::juce_audio_utils juce::juce_dsp PUBLIC juce::juce_recommended_config_flags)
@@ -26,6 +36,9 @@ set(kind 0)
 foreach(name IN LISTS MV_NAMES)
  list(GET MV_CODES ${kind} code)
  juce_add_plugin(${name} COMPANY_NAME "MettaVoxAD Audio Engineering" BUNDLE_ID "com.mettavoxad.bundle.${name}" PLUGIN_MANUFACTURER_CODE Mtvx PLUGIN_CODE ${code} FORMATS VST3 PRODUCT_NAME "MV3 ${name}" IS_SYNTH FALSE NEEDS_MIDI_INPUT FALSE NEEDS_MIDI_OUTPUT FALSE IS_MIDI_EFFECT FALSE EDITOR_WANTS_KEYBOARD_FOCUS FALSE COPY_PLUGIN_AFTER_BUILD FALSE VST3_CATEGORIES Fx)
+ if(TARGET juce_vst3_helper)
+  target_link_libraries(juce_vst3_helper PRIVATE mv3core)
+ endif()
  target_sources(${name} PRIVATE Source/Entry.cpp)
  target_link_libraries(${name} PRIVATE mv3core)
  target_include_directories(${name} PRIVATE $<TARGET_PROPERTY:mv3core,INCLUDE_DIRECTORIES>)
