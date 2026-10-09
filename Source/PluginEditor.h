@@ -69,6 +69,11 @@ public:
     explicit MettavoxadAudioProcessorEditor(MettavoxadAudioProcessor&);
     ~MettavoxadAudioProcessorEditor() override;
     void paint(juce::Graphics&) override;
+    void parentHierarchyChanged() override {
+#if JUCE_WINDOWS
+        if(auto* peer=getPeer()) peer->setCurrentRenderingEngine(0);
+#endif
+    }
     void resized() override;
 private:
     void timerCallback() override;

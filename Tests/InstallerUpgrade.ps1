@@ -62,7 +62,7 @@ $batFiles = @('mettavoxad.dll','mettavoxad_Mono.dll','mettavoxad_Sliders.dll')
 foreach ($name in $batFiles) { Copy-Item $dll (Join-Path $batFolder $name) -Force }
 $neighbor = Join-Path $batFolder 'OUTRO_PLUGIN_NAO_APAGAR.dll'
 Copy-Item $dll $neighbor -Force
-$installer = Join-Path $root "Installer\Windows\Output\mettavoxad_2.1.1_${Architecture}_Setup.exe"
+$installer = Join-Path $root "Installer\Windows\Output\mettavoxad_2.1.1_${Architecture}_Compat_Setup.exe"
 Install-Silent $installer 'upgrade_210.log'
 if (!(Test-Path (Join-Path $app 'METTAVOXAD21.dll'))) { throw 'A atualizacao nao reutilizou o diretorio da 2.0.1.' }
 if (Test-Path (Join-Path $app 'mettavoxad 2.0.dll')) { throw 'DLL 2.0.1 antiga nao foi removida.' }

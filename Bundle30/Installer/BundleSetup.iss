@@ -9,7 +9,7 @@
 [Setup]
 AppId=mettavoxad-bundle-3-{#PluginArch}
 AppName=MettaVoxAD 3.0 Bundle ({#PluginArch})
-AppVersion=3.0.1
+AppVersion=3.0.2
 AppPublisher=MettaVoxAD Audio Engineering
 DefaultDirName={#CommonFiles}\VST2\MettaVoxAD3
 DefaultGroupName=MettaVoxAD 3.0 Bundle ({#PluginArch})
@@ -18,12 +18,14 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 #endif
 OutputDir=Output
-OutputBaseFilename=MettaVoxAD_3.0.1_Bundle_{#PluginArch}_Setup
+OutputBaseFilename=MettaVoxAD_3.0.2_Bundle_{#PluginArch}_Setup
 Compression=lzma2
 SolidCompression=yes
+MinVersion=6.1sp1
 WizardStyle=modern
 PrivilegesRequired=admin
 UsePreviousAppDir=yes
+DisableDirPage=no
 CloseApplications=yes
 RestartApplications=no
 SetupLogging=yes

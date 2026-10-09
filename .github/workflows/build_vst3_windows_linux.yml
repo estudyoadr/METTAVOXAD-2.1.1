@@ -44,17 +44,26 @@ jobs:
         run: |
           cmake --build build_${{ matrix.arch }} --config Release --parallel 2
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Audit PE architecture and external dependencies
+        shell: pwsh
+        run: |
+          $binaries=@(Get-ChildItem "build_${{ matrix.arch }}" -Recurse -File | Where-Object {($_.Extension -eq '.dll' -and $_.Name -like '*Metta*') -or $_.Extension -eq '.vst3'} | ForEach-Object {$_.FullName})
+          python "./Tests/CheckPeImports.py" ${{ matrix.arch }} @binaries
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check native DLL and audio/state lifecycle
         shell: pwsh
         run: |
-          cmake --build build_${{ matrix.arch }} --config Release --target legacy_smoke dsp_checks
+          cmake --build build_${{ matrix.arch }} --config Release --target legacy_smoke dsp_checks vst3_smoke
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & "build_${{ matrix.arch }}/Release/legacy_smoke.exe" "build_${{ matrix.arch }}/mettavoxad_artefacts/Release/VST/METTAVOXAD21.dll"
+          New-Item -ItemType Directory -Force "previews_${{ matrix.arch }}" | Out-Null
+          & "build_${{ matrix.arch }}/Release/legacy_smoke.exe" "build_${{ matrix.arch }}/mettavoxad_artefacts/Release/VST/METTAVOXAD21.dll" "previews_${{ matrix.arch }}/native" 2>&1 | Tee-Object "legacy_${{ matrix.arch }}.txt"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "build_${{ matrix.arch }}/Release/vst3_smoke.exe" "build_${{ matrix.arch }}/mettavoxad_artefacts/Release/VST3/METTAVOXAD21.vst3" 2>&1 | Tee-Object "vst3_${{ matrix.arch }}.txt"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: DSP and UI checks
         shell: pwsh
         run: |
-          & "build_${{ matrix.arch }}/Release/dsp_checks.exe" "previews_${{ matrix.arch }}"
+          & "build_${{ matrix.arch }}/Release/dsp_checks.exe" "previews_${{ matrix.arch }}" 2>&1 | Tee-Object "dsp_${{ matrix.arch }}.txt"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build EXE installer
         shell: pwsh
@@ -80,7 +89,8 @@ jobs:
         with:
           name: METTAVOXAD21-Windows-${{ matrix.arch }}
           path: |
-            previews_${{ matrix.arch }}/*.png
+            previews_${{ matrix.arch }}/*
+            *_${{ matrix.arch }}.txt
             Installer/Windows/Output/*.exe
             build_${{ matrix.arch }}/mettavoxad_artefacts/Release/VST/*.dll
             build_${{ matrix.arch }}/mettavoxad_artefacts/Release/VST3/

@@ -18,7 +18,7 @@ include(FetchContent)
 FetchContent_Declare(
     JUCE
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG        8.0.4
+    GIT_TAG        7.0.12
     GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(JUCE)
@@ -53,6 +53,7 @@ target_sources(mettavoxad
 
 target_compile_definitions(mettavoxad
     PUBLIC
+        JUCE_PLUGINHOST_VST3=1
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
@@ -91,8 +92,18 @@ if(METTAVOXAD_BUILD_LEGACY)
     add_executable(legacy_smoke EXCLUDE_FROM_ALL Tests/LegacySmoke.cpp)
     target_include_directories(legacy_smoke PRIVATE Source)
     target_link_libraries(legacy_smoke PRIVATE ${CMAKE_DL_LIBS})
+    if(WIN32)
+        target_link_libraries(legacy_smoke PRIVATE user32 gdi32)
+    endif()
 endif()
 add_executable(dsp_checks EXCLUDE_FROM_ALL Tests/DspChecks.cpp)
 target_link_libraries(dsp_checks PRIVATE mettavoxad)
 target_include_directories(dsp_checks PRIVATE Source $<TARGET_PROPERTY:mettavoxad,INCLUDE_DIRECTORIES>)
 target_compile_definitions(dsp_checks PRIVATE $<TARGET_PROPERTY:mettavoxad,COMPILE_DEFINITIONS>)
+
+if(WIN32)
+ add_executable(vst3_smoke EXCLUDE_FROM_ALL Tests/Vst3Smoke.cpp)
+ target_link_libraries(vst3_smoke PRIVATE mettavoxad user32 gdi32)
+ target_include_directories(vst3_smoke PRIVATE Source $<TARGET_PROPERTY:mettavoxad,INCLUDE_DIRECTORIES>)
+ target_compile_definitions(vst3_smoke PRIVATE $<TARGET_PROPERTY:mettavoxad,COMPILE_DEFINITIONS>)
+endif()

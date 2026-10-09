@@ -5,12 +5,13 @@
 #include <iostream>
 #ifdef _WIN32
 #include <windows.h>
+#include "NativeEditorChecks.h"
 #else
 #include <dlfcn.h>
 #endif
 intptr_t host(legacy::Effect*, int32_t opcode, int32_t, intptr_t, void*, float) { return opcode==1 ? 2400 : 0; }
 int main(int argc,char** argv) {
-    if(argc!=2) return 1;
+    if(argc<2||argc>3) return 1;
 #ifdef _WIN32
     auto module=LoadLibraryA(argv[1]);
     if(!module) {const auto error=GetLastError();std::cerr<<"Cannot load DLL: "<<argv[1]<<" (Windows error "<<error<<"). Check workflow DLL filename and architecture.\n";return 2;}
@@ -23,7 +24,12 @@ int main(int argc,char** argv) {
 #endif
     if(!entry) {std::cerr<<"Cannot load entry point\n";return 2;}
     if(entry(nullptr)!=nullptr) return 3;
-    auto* e=entry(host);
+    legacy::Effect* e=nullptr;
+#ifdef _WIN32
+    std::thread scanner([&]{e=entry(host);});scanner.join();
+#else
+    e=entry(host);
+#endif
     if(!e || e->magic!=0x56737450 || e->numParams<=0 || !e->processReplacing) return 4;
     e->dispatcher(e,0,0,0,nullptr,0);
     e->dispatcher(e,10,0,0,nullptr,48000);
@@ -45,6 +51,9 @@ int main(int argc,char** argv) {
     float energy=0;
     for(auto x:outA) { if(!std::isfinite(x)) return 8; energy+=std::abs(x); }
     if(energy<=0) return 9;
+#ifdef _WIN32
+    try {native_checks::editor(e,argc==3?argv[2]:"");}catch(const std::exception& ex){std::cerr<<ex.what()<<"\n";return 10;}
+#endif
     e->dispatcher(e,12,0,0,nullptr,0);
     e->dispatcher(e,1,0,0,nullptr,0);
 #ifdef _WIN32

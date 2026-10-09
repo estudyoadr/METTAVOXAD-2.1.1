@@ -9,6 +9,20 @@ thread_local bool fromHost = false;
 
 namespace {
 using namespace legacy;
+// Match the parent HWND's DPI context without changing the host process.
+// Resolve Win10-only APIs dynamically, so Win7/8 loaders never import them.
+struct NativeDpiScope {
+    using Set = HANDLE (WINAPI*)(HANDLE);
+    Set set=nullptr; HANDLE previous=nullptr;
+    explicit NativeDpiScope(HWND parent){
+        const auto user=GetModuleHandleW(L"user32.dll");
+        auto get=reinterpret_cast<HANDLE (WINAPI*)(HWND)>(GetProcAddress(user,"GetWindowDpiAwarenessContext"));
+        set=reinterpret_cast<Set>(GetProcAddress(user,"SetThreadDpiAwarenessContext"));
+        if(get && set) previous=set(get(parent));
+    }
+    ~NativeDpiScope(){if(set && previous)set(previous);}
+};
+
 void copyText(void* destination, const juce::String& text, size_t capacity) {
     if (destination && capacity) text.copyToUTF8(static_cast<char*>(destination), capacity);
 }
@@ -18,7 +32,7 @@ struct Instance final : juce::AudioProcessorListener {
     Effect effect {};
     Callback host;
     std::unique_ptr<juce::AudioProcessorEditor> editor;
-    Rect rect {0, 0, 330, 660};
+    Rect rect {0, 0, 360, 660};
     juce::MemoryBlock chunk;
     juce::AudioBuffer<float> buffer;
     juce::MidiBuffer midi;
@@ -108,18 +122,32 @@ intptr_t dispatchCore(Effect* e, int32_t opcode, int32_t index, intptr_t value, 
         case 11: if(value>0 && value<=1048576) { i.blockSize=static_cast<int>(value); if(i.active) i.activate(); } return 0;
         case 12:
             if(value) i.activate(); else if(i.active) {i.processor.releaseResources(); i.active=false;} return 0;
-        case 13: // editor rectangle
-            if(!i.editor) i.editor.reset(i.processor.createEditor());
-            if(!i.editor || !ptr) return 0;
-            i.rect={0,0,static_cast<int16_t>(i.editor->getHeight()),static_cast<int16_t>(i.editor->getWidth())};
-            *static_cast<Rect**>(ptr)=&i.rect; return 1;
-        case 14: // parent is the host's native child-window container
+        case 13: // Query dimensions without constructing a GUI on scanner threads.
             if(!ptr) return 0;
+            if(i.editor) i.rect={0,0,static_cast<int16_t>(i.editor->getHeight()),static_cast<int16_t>(i.editor->getWidth())};
+            *static_cast<Rect**>(ptr)=&i.rect; return 1;
+        case 14: {
+            if(!ptr || !IsWindow(static_cast<HWND>(ptr))) return 0;
+            // Legacy hosts may instantiate/scan on a worker and open on the UI
+            // thread later. Timers and asynchronous parameter updates need the
+            // thread that actually owns this editor's native message loop.
+            juce::MessageManager::getInstance()->setCurrentThreadAsMessageThread();
+            const NativeDpiScope dpi(static_cast<HWND>(ptr));
             if(!i.editor) i.editor.reset(i.processor.createEditor());
             if(!i.editor) return 0;
-            i.editor->addToDesktop(0,ptr); i.editor->setVisible(true); return 1;
+            i.editor->setOpaque(true);
+            i.editor->addToDesktop(0,ptr);
+            if(auto* peer=i.editor->getPeer()) peer->setCurrentRenderingEngine(0);
+            i.editor->setTopLeftPosition(0,0);
+            i.editor->setVisible(true);
+            i.editor->repaint();
+            if(auto* peer=i.editor->getPeer()) peer->performAnyPendingRepaintsNow();
+            return 1;
+        }
         case 15: i.editor.reset(); return 1;
-        case 19: return 0; // native event loop handles editor idle
+        case 19:
+            if(i.editor){i.editor->repaint();if(auto* peer=i.editor->getPeer())peer->performAnyPendingRepaintsNow();}
+            return 0;
         case 23:
             if(!ptr) return 0;
             i.processor.getStateInformation(i.chunk);
@@ -140,7 +168,7 @@ intptr_t dispatchCore(Effect* e, int32_t opcode, int32_t index, intptr_t value, 
         case 45: copyText(ptr,"METTAVOXAD 2.1",32); return 1;
         case 47: copyText(ptr,"mettavoxad Audio Engineering",64); return 1;
         case 48: copyText(ptr,"METTAVOXAD 2.1",64); return 1;
-        case 49: return 20100;
+        case 49: return 20101;
         case 51: // no MIDI, no host-specific extensions
             return 0;
         case 52: return static_cast<intptr_t>(i.sampleRate*i.processor.getTailLengthSeconds());
@@ -173,7 +201,7 @@ MV_EXPORT legacy::Effect* VSTPluginMain(legacy::Callback host) {
         e.setParameter=setParameter; e.getParameter=getParameter;
         e.numPrograms=i->processor.getNumPrograms(); e.numParams=i->processor.getParameters().size();
         e.numInputs=2; e.numOutputs=2; e.flags=1|16|32; e.ioRatio=1;
-        e.object=i.get(); e.uniqueID=0x4d743231; e.version=20100; e.processReplacing=process;
+        e.object=i.get(); e.uniqueID=0x4d743231; e.version=20101; e.processReplacing=process;
         auto* result=&e; i.release(); return result;
     } catch (...) { return nullptr; }
 }

@@ -16,6 +16,10 @@ class BundleEditor final : public juce::AudioProcessorEditor,private juce::Timer
  MatrixPad pad;std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> attachments;
  std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
  std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> timbreAttachment;
-public:explicit BundleEditor(BundleProcessor&);~BundleEditor()override;void paint(juce::Graphics&)override;void resized()override;
+public:explicit BundleEditor(BundleProcessor&);~BundleEditor()override;void parentHierarchyChanged()override{
+#if JUCE_WINDOWS
+if(auto* peer=getPeer())peer->setCurrentRenderingEngine(0);
+#endif
+}void paint(juce::Graphics&)override;void resized()override;
 private:void timerCallback()override;
 };

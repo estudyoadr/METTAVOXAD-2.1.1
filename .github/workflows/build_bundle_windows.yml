@@ -41,6 +41,14 @@ jobs:
         run: |
           cmake --build build_bundle_${{ matrix.arch }} --config Release --parallel 2
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build_bundle_${{ matrix.arch }} --config Release --target vst3_smoke --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Audit PE architecture and external dependencies
+        shell: pwsh
+        run: |
+          $binaries=@(Get-ChildItem "build_bundle_${{ matrix.arch }}" -Recurse -File | Where-Object {($_.Extension -eq '.dll' -and $_.Name -like '*Metta*') -or $_.Extension -eq '.vst3'} | ForEach-Object {$_.FullName})
+          python "Bundle30/Tests/CheckPeImports.py" ${{ matrix.arch }} @binaries
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: DSP, preset, state, bypass, loudness, true-peak and UI checks
         shell: pwsh
         run: |
@@ -51,7 +59,13 @@ jobs:
         run: |
           $names=@('Pure','Vocal','Impact','Morph','Orbit','Velvet','Apex')
           $dlls=@($names | ForEach-Object { "build_bundle_${{ matrix.arch }}/Legacy/Release/MettaVoxAD $_.dll" })
-          & "build_bundle_${{ matrix.arch }}/Release/bundle_legacy_checks.exe" @dlls 2>&1 | Tee-Object "Bundle30/legacy_${{ matrix.arch }}.txt"
+          & "build_bundle_${{ matrix.arch }}/Release/bundle_legacy_checks.exe" @dlls "Bundle30/previews_${{ matrix.arch }}/native" 2>&1 | Tee-Object "Bundle30/legacy_${{ matrix.arch }}.txt"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Scan VST3 binaries and open their native editors
+        shell: pwsh
+        run: |
+          $paths=@(Get-ChildItem "build_bundle_${{ matrix.arch }}/*_artefacts/Release/VST3/*.vst3" -Directory | ForEach-Object {$_.FullName})
+          & "build_bundle_${{ matrix.arch }}/Release/vst3_smoke.exe" @paths 2>&1 | Tee-Object "Bundle30/vst3_${{ matrix.arch }}.txt"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Stage seven VST3 bundles and build installer
         shell: pwsh
@@ -80,7 +94,7 @@ jobs:
           name: MettaVoxAD30-validation-${{ matrix.arch }}
           path: |
             Bundle30/*_${{ matrix.arch }}.txt
-            Bundle30/previews_${{ matrix.arch }}/*.png
+            Bundle30/previews_${{ matrix.arch }}/*
             ${{ runner.temp }}/bundle_${{ matrix.arch }}_install_*.log
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4

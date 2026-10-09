@@ -2,7 +2,7 @@ param([ValidateSet('x86','x64')][string]$Architecture)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'CI only' }
-$exe=Join-Path $PSScriptRoot "../Installer/Output/MettaVoxAD_3.0.1_Bundle_${Architecture}_Setup.exe"
+$exe=Join-Path $PSScriptRoot "../Installer/Output/MettaVoxAD_3.0.2_Bundle_${Architecture}_Setup.exe"
 $common=if($Architecture -eq 'x86'){[Environment]::GetFolderPath('CommonProgramFilesX86')}else{[Environment]::GetFolderPath('CommonProgramFiles')}
 $vst2=Join-Path $common 'VST2/MettaVoxAD3'
 $vst3=Join-Path $common 'VST3/MettaVoxAD3'

@@ -16,7 +16,7 @@ const char* titles[4][8]{
  {"MISTURA","TIMBRE","TEXTURA","FORMANTES","PORTADORA","LARGURA","ESPACO","SAIDA (dB)"}};
 }
 MettavoxadAudioProcessorEditor::MettavoxadAudioProcessorEditor(MettavoxadAudioProcessor& p):AudioProcessorEditor(&p),processor(p) {
-    setLookAndFeel(&premiumLook);
+    setOpaque(true);setLookAndFeel(&premiumLook);
     for(int m=0;m<4;++m) {
         for(int k=0;k<8;++k) setupKnob(m,k,ids[m][k],titles[m][k]);
         tabs[m].setName(tabNames[m]);tabs[m].setButtonText(names[m]);tabs[m].setClickingTogglesState(true);tabs[m].setRadioGroupId(42);
@@ -60,7 +60,7 @@ MettavoxadAudioProcessorEditor::MettavoxadAudioProcessorEditor(MettavoxadAudioPr
     buttonAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"qualityOversample",hq));
     buttonAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"globalBypass",bypass));
     status.setJustificationType(juce::Justification::centred);
-    status.setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
+    status.setFont(juce::Font(10.0f,juce::Font::bold));
     tabs[0].setToggleState(true,juce::dontSendNotification);showTab(0);
     setResizable(true,true);setResizeLimits(660,330,990,495);setSize(660,330);
     timerCallback();startTimerHz(20);
@@ -72,7 +72,7 @@ void MettavoxadAudioProcessorEditor::setupKnob(int m,int slot,const char* id,con
     knob.setTextBoxStyle(juce::Slider::TextBoxBelow,false,76,16);
     knob.setColour(juce::Slider::rotarySliderFillColourId,juce::Colour(colours[m]));
     label.setText(title,juce::dontSendNotification);label.setJustificationType(juce::Justification::centred);
-    label.setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));label.setColour(juce::Label::textColourId,juce::Colour(0xffa9c3d1));
+    label.setFont(juce::Font(10.0f,juce::Font::bold));label.setColour(juce::Label::textColourId,juce::Colour(0xffa9c3d1));
     addAndMakeVisible(knob);addAndMakeVisible(label);
     sliderAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.apvts,id,knob));
     if(auto* parameter=processor.apvts.getParameter(id)) {
@@ -124,9 +124,9 @@ void MettavoxadAudioProcessorEditor::paint(juce::Graphics& g) {
     const float w=static_cast<float>(getWidth()),h=static_cast<float>(getHeight());
     const auto accent=juce::Colour(colours[currentTab]);
     g.setGradientFill(juce::ColourGradient(juce::Colour(0xff18212d),0,0,juce::Colour(0xff070b12),w,h,false));g.fillRect(getLocalBounds());
-    g.setColour(juce::Colour(0xffe6f7ff));g.setFont(juce::Font(juce::FontOptions(19.0f,juce::Font::bold)));
+    g.setColour(juce::Colour(0xffe6f7ff));g.setFont(juce::Font(19.0f,juce::Font::bold));
     g.drawText("METTAVOX AD",14,7,190,23,juce::Justification::centredLeft);
-    g.setColour(accent);g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.setColour(accent);g.setFont(juce::Font(9.0f));
     g.drawText("2.1.1  /  VOCAL DESIGN  /  24 PRESETS",14,30,270,13,juce::Justification::centredLeft);
     const juce::Rectangle<float> card(12,109,w-76,h-136);
     g.setColour(juce::Colour(0xff0c1420));g.fillRoundedRectangle(card,10);
@@ -138,7 +138,7 @@ void MettavoxadAudioProcessorEditor::paint(juce::Graphics& g) {
         g.setColour(juce::Colour(colours[m]).withAlpha(on?0.35f+0.65f*signal:0.12f));
         g.fillEllipse(x,49,4,4);
     }
-    g.setColour(juce::Colour(0xff7aabba));g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.setColour(juce::Colour(0xff7aabba));g.setFont(juce::Font(9.0f));
     g.drawText("OUT",getWidth()-57,113,45,14,juce::Justification::centred);
     const float meterHeight=h-174.0f;
     const float levels[]{processor.meterOutputLeftDb.load(),processor.meterOutputRightDb.load()};

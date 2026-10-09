@@ -21,12 +21,13 @@ ArchitecturesInstallIn64BitMode=x64compatible
 #endif
 MinVersion=6.1sp1
 OutputDir=Output
-OutputBaseFilename=mettavoxad_2.1.1_{#PluginArch}_Setup
+OutputBaseFilename=mettavoxad_2.1.1_{#PluginArch}_Compat_Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
 UsePreviousAppDir=yes
+DisableDirPage=no
 CloseApplications=yes
 RestartApplications=no
 SetupLogging=yes
