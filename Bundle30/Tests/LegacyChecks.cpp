@@ -1,0 +1,8 @@
+#include "LegacyVstAbi.h"
+#include <windows.h>
+#include <iostream>
+#include <array>
+#include <cmath>
+#include <stdexcept>
+intptr_t host(legacy::Effect*,int32_t op,int32_t,intptr_t,void*,float){return op==1?2400:0;}
+int main(int argc,char** argv){try{if(argc!=8)throw std::runtime_error("Seven DLL paths required");for(int k=0;k<7;++k){auto module=LoadLibraryA(argv[k+1]);if(!module)throw std::runtime_error("DLL load failed");auto entry=reinterpret_cast<legacy::Effect*(*)(legacy::Callback)>(GetProcAddress(module,"VSTPluginMain"));if(!entry||!GetProcAddress(module,"main"))throw std::runtime_error("Export missing");auto* e=entry(host);if(!e||e->uniqueID!=0x4d563300+k||e->version!=30000)throw std::runtime_error("Identity invalid");e->dispatcher(e,0,0,0,nullptr,0);e->dispatcher(e,10,0,0,nullptr,48000);e->dispatcher(e,11,0,512,nullptr,0);e->dispatcher(e,12,0,1,nullptr,0);std::array<float,512> l{},r{},ol{},orr{};float* input[]{l.data(),r.data()},*output[]{ol.data(),orr.data()};for(int block=0;block<16;++block){for(int i=0;i<512;++i)l[i]=r[i]=.1f*std::sin(float((block*512+i)*6.283185307*225/48000));e->processReplacing(e,input,output,512);for(auto x:ol)if(!std::isfinite(x))throw std::runtime_error("Nonfinite output");}void* state=nullptr;int size=int(e->dispatcher(e,23,0,0,&state,0));if(size<1||!state)throw std::runtime_error("Missing state");e->dispatcher(e,24,0,size,state,0);e->dispatcher(e,12,0,0,nullptr,0);e->dispatcher(e,1,0,0,nullptr,0);FreeLibrary(module);std::cout<<"PASS DLL "<<k<<" load, exports, identity, audio, state, close\n";}return 0;}catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}
