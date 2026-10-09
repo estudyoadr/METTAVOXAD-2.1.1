@@ -15,9 +15,10 @@ inline void capture(HWND child,const std::string& path){
  BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=width;info.bmiHeader.biHeight=-height;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
  auto screen=GetDC(child);auto dc=CreateCompatibleDC(screen);void* pixels=nullptr;auto bitmap=CreateDIBSection(screen,&info,DIB_RGB_COLORS,&pixels,nullptr,0);auto previous=SelectObject(dc,bitmap);
  PatBlt(dc,0,0,width,height,BLACKNESS);
- // Native WM_PRINTCLIENT invokes the actual peer's GDI painting path. No
- // JUCE off-screen component snapshot substitutes for the host attachment.
- SendMessageW(child,WM_PRINTCLIENT,reinterpret_cast<WPARAM>(dc),PRF_CLIENT|PRF_CHILDREN);
+ // Read the actual GDI client surface after synchronously requesting WM_PAINT.
+ // JUCE7 does not implement WM_PRINTCLIENT; that message alone captures black.
+ RedrawWindow(child,nullptr,nullptr,RDW_INVALIDATE|RDW_UPDATENOW|RDW_ALLCHILDREN);
+ if(!BitBlt(dc,0,0,width,height,screen,0,0,SRCCOPY))throw std::runtime_error("Native client BitBlt failed");
  const auto* colours=static_cast<const unsigned int*>(pixels);std::set<unsigned int> distinct;
  for(int y=0;y<height;y+=5)for(int x=0;x<width;x+=5)distinct.insert(colours[y*width+x]&0xffffff);
  const auto number=distinct.size();
@@ -36,7 +37,7 @@ inline void editor(legacy::Effect* e,const std::string& prefix){
   legacy::Rect* rect=nullptr;if(!e->dispatcher(e,13,0,0,&rect,0)||!rect||rect->right<500||rect->bottom<300)throw std::runtime_error("Invalid editor rectangle");
   const int width=rect->right,height=rect->bottom;RECT frame{0,0,width,height};AdjustWindowRect(&frame,WS_OVERLAPPEDWINDOW,FALSE);
   auto parent=CreateWindowExW(0,L"STATIC",L"MettaVoxAD native host test",WS_OVERLAPPEDWINDOW,40,40,frame.right-frame.left,frame.bottom-frame.top,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
-  if(!parent)throw std::runtime_error("Host HWND creation failed");ShowWindow(parent,SW_SHOWNOACTIVATE);
+  if(!parent)throw std::runtime_error("Host HWND creation failed");ShowWindow(parent,SW_SHOWNOACTIVATE);SetWindowPos(parent,HWND_TOPMOST,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_SHOWWINDOW);
   if(e->dispatcher(e,14,0,0,reinterpret_cast<void*>(1),0))throw std::runtime_error("Invalid HWND accepted");
   for(int reopen=0;reopen<2;++reopen){
    if(!e->dispatcher(e,14,0,0,parent,0))throw std::runtime_error("Editor attach failed");pump(e,160);

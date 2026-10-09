@@ -25,7 +25,7 @@ foreach(module IN LISTS MV_MODULES)
 endforeach()
 add_library(mv3core STATIC Source/Processor.cpp Source/Editor.cpp ${MV_MODULE_SOURCES})
 target_include_directories(mv3core PUBLIC Source)
-target_compile_definitions(mv3core PUBLIC JUCE_PLUGINHOST_VST3=1
+target_compile_definitions(mv3core PUBLIC JUCE_DIRECT2D=0 JUCE_PLUGINHOST_VST3=1
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(mv3core PRIVATE juce::juce_audio_utils juce::juce_dsp PUBLIC juce::juce_recommended_config_flags)
 if(MSVC)

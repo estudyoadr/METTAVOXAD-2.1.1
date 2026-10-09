@@ -15,7 +15,7 @@ int main(int argc,char** argv){try{
   double energy=0;for(int block=0;block<24;++block){for(int ch=0;ch<2;++ch)for(int j=0;j<256;++j)b.setSample(ch,j,.12f*std::sin(float((block*256+j)*.03)));plugin->processBlock(b,midi);for(int j=0;j<256;++j){auto x=b.getSample(0,j);if(!std::isfinite(x))throw std::runtime_error("VST3 audio invalid");energy+=double(x)*x;}}
   if(energy<=.001)throw std::runtime_error("VST3 audio silent");
   RECT frame{0,0,1000,700};AdjustWindowRect(&frame,WS_OVERLAPPEDWINDOW,FALSE);
-  auto parent=CreateWindowExW(0,L"STATIC",L"MettaVoxAD VST3 native host",WS_OVERLAPPEDWINDOW,20,20,frame.right-frame.left,frame.bottom-frame.top,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);ShowWindow(parent,SW_SHOWNOACTIVATE);
+  auto parent=CreateWindowExW(0,L"STATIC",L"MettaVoxAD VST3 native host",WS_OVERLAPPEDWINDOW,20,20,frame.right-frame.left,frame.bottom-frame.top,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);ShowWindow(parent,SW_SHOWNOACTIVATE);SetWindowPos(parent,HWND_TOPMOST,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_SHOWWINDOW);
   for(int pass=0;pass<2;++pass){
    std::unique_ptr<juce::AudioProcessorEditor> editor(plugin->createEditorIfNeeded());if(!editor)throw std::runtime_error("VST3 editor missing");
    editor->addToDesktop(0,parent);editor->setVisible(true);

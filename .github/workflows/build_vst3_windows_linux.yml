@@ -19,6 +19,11 @@ jobs:
             platform: x64
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: build_${{ matrix.arch }}
+          key: mv21-compat-msvc-${{ matrix.arch }}-${{ github.sha }}
+          restore-keys: mv21-compat-msvc-${{ matrix.arch }}-
       - name: Extract source ZIP and verify project files
         shell: pwsh
         run: |
@@ -79,6 +84,11 @@ jobs:
           $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           if (!(Test-Path $iscc)) { $iscc = Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe' }
           ./Tests/InstallerUpgrade.ps1 -Architecture ${{ matrix.arch }} -Iscc $iscc
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: build_${{ matrix.arch }}
+          key: mv21-compat-msvc-${{ matrix.arch }}-${{ github.sha }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
