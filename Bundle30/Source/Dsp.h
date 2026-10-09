@@ -75,8 +75,8 @@ public:
 private:static float level(double x){return float(-.691+10*std::log10(juce::jmax(1.e-12,x)));}
 };
 struct MinimumWindow {
- std::vector<float> values;std::vector<int> times;int head=0,tail=0,clock=0,length=1,size=1;
- void prepare(int n){length=n;size=n+3;values.assign(size_t(size),1);times.assign(size_t(size),0);head=tail=clock=0;}
+ std::vector<float> values;std::vector<int64_t> times;int head=0,tail=0,length=1,size=1;int64_t clock=0;
+ void prepare(int n){length=n;size=n+3;values.assign(size_t(size),1);times.assign(size_t(size),0);head=tail=0;clock=0;}
  float push(float v){while(head!=tail && values[size_t((tail+size-1)%size)]>=v)tail=(tail+size-1)%size;values[size_t(tail)]=v;times[size_t(tail)]=clock;tail=(tail+1)%size;while(head!=tail && times[size_t(head)]<clock-length)head=(head+1)%size;++clock;return values[size_t(head)];}
 };
 class Engine {
@@ -112,7 +112,7 @@ public:
  }
  void process(float& l,float& r,float bpm){std::array<float,8> v;for(size_t i=0;i<8;++i)v[i]=smooth[i].getNextValue();const float raw[2]{l,r};float d[2]{l,r};const float env=level.tick(.5f*(std::abs(l)+std::abs(r)));const float s=essEnv.tick(.5f*(std::abs(essDetect.tick(0,l))+std::abs(essDetect.tick(1,r))));float reduction=0;
   if(kind==0){spectral.tick(l,r,v[0],v[1]);d[0]=l;d[1]=r;
-   for(int c=0;c<2;++c){float x=d[c];float median=.5f*(older[c]+x);float delta=std::abs(previous[c]-median);float threshold=.22f-.0018f*v[5];float cleaned=delta>threshold && std::abs(x-older[c])<threshold?median:previous[c];older[c]=previous[c];previous[c]=x;d[c]=hp.tick(c,cleaned);}
+   for(int c=0;c<2;++c){float x=d[c];float median=.5f*(older[c]+x);float delta=std::abs(previous[c]-median);float threshold=.22f-.0018f*v[5];float cleaned=v[5]>.01f && delta>threshold && std::abs(x-older[c])<threshold?median:previous[c];older[c]=previous[c];previous[c]=x;d[c]=hp.tick(c,cleaned);}
    const float low=.5f*(std::abs(thumpBand.tick(0,d[0]))+std::abs(thumpBand.tick(1,d[1])));float deThump=juce::jlimit(0.f,1.f,(low-env*.75f)*4)*v[4]*.01f;
    reduction=juce::jlimit(0.f,v[2],db(s+1.e-6f)-db(env+.00001f)+20)*v[2]/12;
    for(int c=0;c<2;++c){float band=essBand.tick(c,d[c]);d[c]-=band*(1-gain(-reduction));d[c]-=thumpBand.tick(c,d[c])*deThump*.7f;}

@@ -2,6 +2,7 @@ name: METTAVOXAD 2.1.1 - Windows x86 + x64 and Linux
 on:
   push:
     branches: [main, master]
+    paths-ignore: ['Bundle30/**', '.github/workflows/build_bundle_windows.yml']
   workflow_dispatch:
 permissions:
   contents: read
