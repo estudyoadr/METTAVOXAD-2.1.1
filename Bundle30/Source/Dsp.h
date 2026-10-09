@@ -80,8 +80,8 @@ struct MinimumWindow {
  float push(float v){while(head!=tail && values[size_t((tail+size-1)%size)]>=v)tail=(tail+size-1)%size;values[size_t(tail)]=v;times[size_t(tail)]=clock;tail=(tail+1)%size;while(head!=tail && times[size_t(head)]<clock-length)head=(head+1)%size;++clock;return values[size_t(head)];}
 };
 class Engine {
- int kind=0;double sr=48000;std::array<float,8> p{};std::array<juce::SmoothedValue<float>,8> smooth;
- Filter hp,mud,body,air,essDetect,essBand,thumpBand,punchBand,wetLow,wetHigh,dc;
+ int kind=0,vocalProfile=0;double sr=48000;std::array<float,8> p{};std::array<juce::SmoothedValue<float>,8> smooth;
+ Filter hp,mud,body,air,voicePresence,voiceAir,voiceLow,voiceEss,essDetect,essBand,thumpBand,punchBand,wetLow,wetHigh,dc;
  Envelope level,essEnv,fast,slow,opto,subEnv;float comp=1,optoGain=1,glue=1,phase=0,lfo=0,autoGain=1,limiterGain[2]{1,1};
  float previous[2]{},older[2]{},allpass[2][8]{},prevDiff[2]{};int count=0;
  Delay echo,roomDelay,look;std::array<MinimumWindow,2> minima;
@@ -93,9 +93,10 @@ class Engine {
  std::array<juce::dsp::LinkwitzRileyFilter<float>,2> cross;
  juce::dsp::LinkwitzRileyFilter<float> lowAlign;
 public:
+ void setVocalProfile(int profile){vocalProfile=juce::jlimit(0,2,profile);}
  float grDb=0,wetDuck=1,pitchHz=0;int lookSamples=0;
  void prepare(int k,double rate,int maxBlock,const std::array<float,8>& values){kind=k;sr=rate;p=values;count=0;comp=optoGain=glue=autoGain=1;limiterGain[0]=limiterGain[1]=1;phase=lfo=0;grDb=0;previous[0]=previous[1]=older[0]=older[1]=0;for(auto& a:allpass)for(auto& z:a)z=0;
-  for(auto& f:{&hp,&mud,&body,&air,&essDetect,&essBand,&thumpBand,&punchBand,&wetLow,&wetHigh,&dc})f->reset();
+  for(auto& f:{&hp,&mud,&body,&air,&voicePresence,&voiceAir,&voiceLow,&voiceEss,&essDetect,&essBand,&thumpBand,&punchBand,&wetLow,&wetHigh,&dc})f->reset();
   level.setup(sr,3,120);essEnv.setup(sr,1,70);fast.setup(sr,1,35);slow.setup(sr,25,180);opto.setup(sr,12,240);subEnv.setup(sr,5,100);level.v=essEnv.v=fast.v=slow.v=opto.v=subEnv.v=0;
   spectral.reset();echo.prepare(sr,2.5);roomDelay.prepare(sr,.2);look.prepare(sr,.02);lookSamples=kind==6?int(sr*.005):0;for(auto& m:minima)m.prepare(lookSamples);
   reverb.setSampleRate(sr);reverb.reset();pitch.prepare(sr);detector.prepare(sr);vocoder.prepare(sr);for(auto& m:micro)m.init(juce::jmax(256,int(sr*.04)));
@@ -106,6 +107,7 @@ public:
   hp.hp(sr,kind==0?35+values[4]*.9f:55+values[0]*.4f);mud.bp(sr,280,1.1f);dc.hp(sr,15);thumpBand.lp(sr,160);essBand.bp(sr,kind==0?p[3]:7400,1.3f);punchBand.bp(sr,kind==2?p[3]:3200,.8f);
   essDetect.bp(sr,kind==0?p[3]:7400,1.3f);
   body.peak(sr,135,.65f,kind==1?p[4]:kind==5?p[1]:0);air.shelf(sr,kind==5?p[3]:4500,kind==1?p[5]:kind==5?p[2]:0);wetLow.hp(sr,180);wetHigh.lp(sr,kind==4?p[5]:6500);
+  voicePresence.peak(sr,vocalProfile==2?2800:3400,.65f,vocalProfile?1.4f:0);voiceAir.shelf(sr,12000,vocalProfile==2?.8f:1.2f);voiceLow.peak(sr,105,.65f,vocalProfile==2?1.2f:.6f);voiceEss.bp(sr,7000,1.1f);
   pitch.setParams(kind==1 && p[1]>.01f,p[1],120,0,0,0,90,100,0);
   vocoder.setParams(1,100,78,4,60,kind==3?p[2]:0,kind==3?p[5]:0,0,0);
   juce::Reverb::Parameters rv;rv.roomSize=.28f;rv.damping=.65f;rv.wetLevel=1;rv.dryLevel=0;rv.width=.65f;reverb.setParameters(rv);
@@ -119,9 +121,38 @@ public:
    if(env>.005f){float target=juce::jlimit(.5f,2.f,.1f/(env+.00001f));autoGain+=(target-autoGain)*float(1-std::exp(-1/(sr*.5)));}for(auto& x:d)x*=1+(autoGain-1)*v[6]*.01f;
   }
   else if(kind==1){for(int c=0;c<2;++c){d[c]=hp.tick(c,d[c]);float m=mud.tick(c,d[c]);float cut=juce::jlimit(0.f,.6f,std::abs(m)*4)*v[0]*.01f;d[c]-=m*cut;d[c]=air.tick(c,body.tick(c,d[c]));}pitch.processStereo(d[0],d[1]);
+   if(vocalProfile==0){
    const float e=fast.tick(.5f*(std::abs(d[0])+std::abs(d[1])));float threshold=-12-v[2]*.15f,ratio=2+v[2]*.05f;float over=juce::jmax(0.f,db(e)-threshold);float wanted=gain(-over*(1-1/ratio));comp+=(wanted-comp)*(wanted<comp?.04f:.0005f);float optical=opto.tick(e*comp);float opticalGr=juce::jmax(0.f,db(optical)+20)*v[2]*.004f;float wantedOpto=gain(-opticalGr);optoGain+=(wantedOpto-optoGain)*float(1-std::exp(-1/(sr*(wantedOpto<optoGain?.012:.2))));
    float makeup=gain(v[2]*.055f);for(auto& x:d)x*=comp*optoGain*makeup;reduction=-db(comp*optoGain);
    saturate(d,v[3]*.01f,.15f);float bus=juce::jmax(0.f,db(level.v)+14)*.15f;glue+=(gain(-bus)-glue)*.001f;for(auto& x:d)x*=glue;
+   }else{
+    // Original optical-inspired voice leveller, soft knee and level-dependent
+    // recovery. Rates are in seconds, independent of oversampling/sample rate.
+    const float amount=v[2]*.01f;
+    const float peak=.5f*(std::abs(d[0])+std::abs(d[1]));
+    const float e=opto.tick(peak);
+    const float threshold=-18.f-8.f*amount,ratio=2.f+3.5f*amount;
+    const float over=db(e)-threshold,knee=6.f;
+    const float curved=over<=-knee*.5f?0.f:over<knee*.5f?(over+knee*.5f)*(over+knee*.5f)/(2*knee):over;
+    const float wanted=gain(-curved*(1-1/ratio)*amount);
+    const float release=(vocalProfile==2?.18f:.14f)+juce::jlimit(0.f,.5f,-db(optoGain)*.025f);
+    const float attack=vocalProfile==2?.015f:.01f;
+    optoGain+=(wanted-optoGain)*float(1-std::exp(-1/(sr*(wanted<optoGain?attack:release))));
+    const float caught=gain(-juce::jmax(0.f,db(peak)+7.f)*.65f*amount);
+    comp+=(caught-comp)*float(1-std::exp(-1/(sr*(caught<comp?.002:.065))));
+    reduction=-db(comp*optoGain);const float makeup=gain(5.f*amount);
+    for(int c=0;c<2;++c){float x=d[c]*comp*optoGain*makeup;
+     x=voiceAir.tick(c,voicePresence.tick(c,voiceLow.tick(c,x)));
+     const float consonant=juce::jlimit(0.f,1.f,s/(env+.01f));
+     x-=voiceEss.tick(c,x)*(1-gain(-3.f*consonant));
+     // Weak asymmetric harmonic colour with matched small-signal gain;
+     // all nonlinear processing remains inside the 4x oversampled path.
+     const float drive=1.f+v[3]*.012f,bias=vocalProfile==2?.14f:.07f;
+     const float shaped=(std::tanh(x*drive+bias)-std::tanh(bias))/(drive*(1-std::tanh(bias)*std::tanh(bias)));
+     d[c]=x+(shaped-x)*v[3]*.004f;
+    }
+    saturate(d,v[3]*.006f,.2f);
+   }
    float a=wetLow.tick(0,roomDelay.read(0,float(sr*.028))),b=wetLow.tick(1,roomDelay.read(1,float(sr*.031)));roomDelay.push(d[0],d[1]);reverb.processStereo(&a,&b,1);float duck=1/(1+env*8);d[0]+=wetHigh.tick(0,a)*v[6]*.01f*duck;d[1]+=wetHigh.tick(1,b)*v[6]*.01f*duck;
   }
   else if(kind==2){float f=fast.tick(env),sl=slow.tick(env);float attack=juce::jlimit(0.f,1.f,(f-sl)/(sl+.02f));float sustained=1-attack;float amount=v[0]*attack+v[1]*sustained;float g=gain(amount);float expander=env<.004f?juce::jlimit(.2f,1.f,env/.004f):1;

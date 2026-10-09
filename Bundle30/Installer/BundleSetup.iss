@@ -9,7 +9,7 @@
 [Setup]
 AppId=mettavoxad-bundle-3-{#PluginArch}
 AppName=MettaVoxAD 3.0 Bundle ({#PluginArch})
-AppVersion=3.0.0
+AppVersion=3.0.1
 AppPublisher=MettaVoxAD Audio Engineering
 DefaultDirName={#CommonFiles}\VST2\MettaVoxAD3
 DefaultGroupName=MettaVoxAD 3.0 Bundle ({#PluginArch})
@@ -18,7 +18,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 #endif
 OutputDir=Output
-OutputBaseFilename=MettaVoxAD_3.0.0_Bundle_{#PluginArch}_Setup
+OutputBaseFilename=MettaVoxAD_3.0.1_Bundle_{#PluginArch}_Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -35,3 +35,19 @@ Source: "..\Docs\MANUAL.md"; DestDir: "{app}"; Flags: ignoreversion
 Name: "{group}\Manual"; Filename: "{app}\MANUAL.md"
 [UninstallDelete]
 Type: filesandordirs; Name: "{#CommonFiles}\VST3\MettaVoxAD3"
+
+[InstallDelete]
+Type: files; Name: "{app}\MV3 DeCon.dll"
+Type: filesandordirs; Name: "{#CommonFiles}\VST3\MettaVoxAD3\MV3 DeCon.vst3"
+Type: files; Name: "{app}\MV3 SessionStrip.dll"
+Type: filesandordirs; Name: "{#CommonFiles}\VST3\MettaVoxAD3\MV3 SessionStrip.vst3"
+Type: files; Name: "{app}\MV3 TransientDynamix.dll"
+Type: filesandordirs; Name: "{#CommonFiles}\VST3\MettaVoxAD3\MV3 TransientDynamix.vst3"
+Type: files; Name: "{app}\MV3 SonicMatrix.dll"
+Type: filesandordirs; Name: "{#CommonFiles}\VST3\MettaVoxAD3\MV3 SonicMatrix.vst3"
+Type: files; Name: "{app}\MV3 SpaceWeaver.dll"
+Type: filesandordirs; Name: "{#CommonFiles}\VST3\MettaVoxAD3\MV3 SpaceWeaver.vst3"
+Type: files; Name: "{app}\MV3 Exciter808.dll"
+Type: filesandordirs; Name: "{#CommonFiles}\VST3\MettaVoxAD3\MV3 Exciter808.vst3"
+Type: files; Name: "{app}\MV3 MaximumCeiling.dll"
+Type: filesandordirs; Name: "{#CommonFiles}\VST3\MettaVoxAD3\MV3 MaximumCeiling.vst3"

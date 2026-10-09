@@ -140,7 +140,7 @@ intptr_t dispatchCore(Effect* e, int32_t opcode, int32_t index, intptr_t value, 
         case 45: copyText(ptr,i.processor.getName(),32); return 1;
         case 47: copyText(ptr,"mettavoxad Audio Engineering",64); return 1;
         case 48: copyText(ptr,i.processor.getName(),64); return 1;
-        case 49: return 30000;
+        case 49: return 30001;
         case 51: // no MIDI, no host-specific extensions
             return 0;
         case 52: return static_cast<intptr_t>(i.sampleRate*i.processor.getTailLengthSeconds());
@@ -173,7 +173,7 @@ MV_EXPORT legacy::Effect* VSTPluginMain(legacy::Callback host) {
         e.setParameter=setParameter; e.getParameter=getParameter;
         e.numPrograms=i->processor.getNumPrograms(); e.numParams=i->processor.getParameters().size();
         e.numInputs=2; e.numOutputs=2; e.flags=1|16|32; e.ioRatio=1;
-        e.object=i.get(); e.uniqueID=0x4d563300+MV_KIND; e.version=30000; e.processReplacing=process;
+        e.object=i.get(); e.uniqueID=0x4d563300+MV_KIND; e.version=30001; e.processReplacing=process;
         auto* result=&e; i.release(); return result;
     } catch (...) { return nullptr; }
 }

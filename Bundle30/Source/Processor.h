@@ -13,7 +13,7 @@ public:
  void processBlockBypassed(juce::AudioBuffer<float>&,juce::MidiBuffer&) override;
  juce::AudioProcessorEditor* createEditor() override;
  bool hasEditor() const override{return true;}
- const juce::String getName() const override{return "MV3 "+juce::String(product().name);}
+ const juce::String getName() const override{return juce::String(product().name);}
  bool acceptsMidi() const override{return false;} bool producesMidi() const override{return false;} bool isMidiEffect() const override{return false;}
  double getTailLengthSeconds() const override{return kind==4?8:kind==1?2:0;}
  int getNumPrograms() override{return 7;}int getCurrentProgram() override{return program.load();}
@@ -32,6 +32,7 @@ private:
  juce::AudioBuffer<float> work,dry;
  juce::SmoothedValue<float> inputGain,outputGain,active,autoLevel;
  std::atomic<float>* bypassParameter=nullptr;
+ std::atomic<float>* micProfile=nullptr;
  std::array<std::atomic<float>*,8> params{};
  std::atomic<float>* in=nullptr;std::atomic<float>* out=nullptr;
  void run(juce::AudioBuffer<float>&,bool);
