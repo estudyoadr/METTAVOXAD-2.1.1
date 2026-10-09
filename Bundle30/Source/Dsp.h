@@ -114,7 +114,7 @@ public:
   if(kind==0){spectral.tick(l,r,v[0],v[1]);d[0]=l;d[1]=r;
    for(int c=0;c<2;++c){float x=d[c];float median=.5f*(older[c]+x);float delta=std::abs(previous[c]-median);float threshold=.22f-.0018f*v[5];float cleaned=v[5]>.01f && delta>threshold && std::abs(x-older[c])<threshold?median:previous[c];older[c]=previous[c];previous[c]=x;d[c]=hp.tick(c,cleaned);}
    const float low=.5f*(std::abs(thumpBand.tick(0,d[0]))+std::abs(thumpBand.tick(1,d[1])));float deThump=juce::jlimit(0.f,1.f,(low-env*.75f)*4)*v[4]*.01f;
-   reduction=juce::jlimit(0.f,v[2],db(s+1.e-6f)-db(env+.00001f)+20)*v[2]/12;
+   reduction=juce::jlimit(0.f,1.f,(db(s+1.e-6f)-db(env+.00001f)+18)/18)*v[2];
    for(int c=0;c<2;++c){float band=essBand.tick(c,d[c]);d[c]-=band*(1-gain(-reduction));d[c]-=thumpBand.tick(c,d[c])*deThump*.7f;}
    if(env>.005f){float target=juce::jlimit(.5f,2.f,.1f/(env+.00001f));autoGain+=(target-autoGain)*float(1-std::exp(-1/(sr*.5)));}for(auto& x:d)x*=1+(autoGain-1)*v[6]*.01f;
   }

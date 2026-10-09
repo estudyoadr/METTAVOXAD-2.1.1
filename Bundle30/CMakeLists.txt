@@ -9,6 +9,10 @@ endif()
 include(FetchContent)
 FetchContent_Declare(JUCE GIT_REPOSITORY https://github.com/juce-framework/JUCE.git GIT_TAG 8.0.4 GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(JUCE)
+# The plugin client normally compiles its JUCE dependencies in every product.
+# All seven products link those implementations from mv3core instead; retain
+# the client module's own definitions and each format wrapper source.
+set_property(TARGET juce_audio_plugin_client PROPERTY INTERFACE_LINK_LIBRARIES "")
 add_library(mv3core STATIC Source/Processor.cpp Source/Editor.cpp)
 target_include_directories(mv3core PUBLIC Source)
 target_compile_definitions(mv3core PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
