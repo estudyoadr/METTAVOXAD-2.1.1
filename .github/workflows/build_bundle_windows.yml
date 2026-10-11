@@ -54,6 +54,11 @@ jobs:
         run: |
           & "build_bundle_${{ matrix.arch }}/Release/bundle_checks.exe" "Bundle30/previews_${{ matrix.arch }}" 2>&1 | Tee-Object "Bundle30/validation_${{ matrix.arch }}.txt"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Focus vocal dynamics, automation, silence and sample-rate checks
+        shell: pwsh
+        run: |
+          & "build_bundle_${{ matrix.arch }}/Release/vocal_checks.exe" 2>&1 | Tee-Object "Bundle30/vocal_${{ matrix.arch }}.txt"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Load every legacy DLL
         shell: pwsh
         run: |

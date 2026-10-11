@@ -12,9 +12,9 @@ private:void set(const juce::MouseEvent&);bool gesture=false;
 class BundleEditor final : public juce::AudioProcessorEditor,private juce::Timer {
  BundleProcessor& processor;BundleLook look;
  std::array<juce::Slider,8> knobs;std::array<juce::Label,8> labels;
- juce::Slider input,output;juce::ComboBox presets,timbre;juce::ToggleButton bypass{"BYPASS"};juce::Label status;
+ juce::Slider input,output;juce::ComboBox presets,timbre;juce::ToggleButton bypass{"BYPASS"},focus{"FOCUS"},match{"MATCH"};juce::Label status;
  MatrixPad pad;std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> attachments;
- std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
+ std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment,focusAttachment,matchAttachment;
  std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> timbreAttachment;
 public:explicit BundleEditor(BundleProcessor&);~BundleEditor()override;void parentHierarchyChanged()override{
 #if JUCE_WINDOWS

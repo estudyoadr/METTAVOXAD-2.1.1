@@ -5,6 +5,12 @@ namespace mv3 {
 struct Control { const char* id; const char* label; float min,max,step,def; const char* unit; };
 struct Preset { const char* name; std::array<float,8> values; };
 struct Product { const char* name; const char* slug; const char* role; juce::uint32 colour; std::array<Control,8> controls; std::array<Preset,6> presets; };
+inline const std::array<Preset,4> focusPresets {{
+ {"Metta Signature U87",{30,0,60,24,1.2f,2.8f,0,100}},
+ {"Metta Impact Clean",{38,0,76,30,1.6f,3.2f,0,100}},
+ {"Metta Velvet Close",{22,0,42,18,1.4f,1.8f,0,100}},
+ {"Metta Radio Presence",{35,0,68,22,.8f,3.8f,0,100}}
+}};
 inline const std::array<Product,7> products {{
 {"MettaVoxAD Pure","Pure","RESTAURACAO / VOZ LIMPA",0xff00d9ff,{{
 {"noise","RUIDO",0,24,.1f,8,"dB"},{"floor","PISO DE RUIDO",-80,-25,.1f,-58,"dB"},{"ess","DE-ESS",0,12,.1f,4,"dB"},{"essHz","FAIXA S",4500,9500,10,7200,"Hz"},{"thump","DE-THUMP",0,100,1,35,"%"},{"click","DE-CLICK",0,100,1,20,"%"},{"stage","GAIN STAGING",0,100,1,0,"%"},{"mix","DRY / WET",0,100,1,100,"%"}}},{{

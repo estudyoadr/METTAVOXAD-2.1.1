@@ -16,7 +16,7 @@ public:
  const juce::String getName() const override{return juce::String(product().name);}
  bool acceptsMidi() const override{return false;} bool producesMidi() const override{return false;} bool isMidiEffect() const override{return false;}
  double getTailLengthSeconds() const override{return kind==4?8:kind==1?2:0;}
- int getNumPrograms() override{return 7;}int getCurrentProgram() override{return program.load();}
+ int getNumPrograms() override{return kind==1?11:7;}int getCurrentProgram() override{return program.load();}
  void setCurrentProgram(int) override;const juce::String getProgramName(int) override;void changeProgramName(int,const juce::String&) override{}
  void getStateInformation(juce::MemoryBlock&) override;void setStateInformation(const void*,int) override;
  const mv3::Product& product()const{return mv3::products[size_t(kind)];}int getKind() const{return kind;}
@@ -33,6 +33,8 @@ private:
  juce::SmoothedValue<float> inputGain,outputGain,active,autoLevel;
  std::atomic<float>* bypassParameter=nullptr;
  std::atomic<float>* micProfile=nullptr;
+ std::atomic<float>* focusParameter=nullptr;std::atomic<float>* matchParameter=nullptr;
+ float matchInPower=0,matchOutPower=0;juce::SmoothedValue<float> matchGain;
  std::array<std::atomic<float>*,8> params{};
  std::atomic<float>* in=nullptr;std::atomic<float>* out=nullptr;
  void run(juce::AudioBuffer<float>&,bool);

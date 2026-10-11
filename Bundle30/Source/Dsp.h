@@ -79,7 +79,10 @@ struct MinimumWindow {
  void prepare(int n){length=n;size=n+3;values.assign(size_t(size),1);times.assign(size_t(size),0);head=tail=0;clock=0;}
  float push(float v){while(head!=tail && values[size_t((tail+size-1)%size)]>=v)tail=(tail+size-1)%size;values[size_t(tail)]=v;times[size_t(tail)]=clock;tail=(tail+1)%size;while(head!=tail && times[size_t(head)]<clock-length)head=(head+1)%size;++clock;return values[size_t(head)];}
 };
+#include "VocalFocus.h"
 class Engine {
+ bool focusEnabled=false; VocalFocus focus; juce::SmoothedValue<float> focusBlend;
+ mettavoxad_eng::PitchCorrectionEngine focusPitch;
  int kind=0,vocalProfile=0;double sr=48000;std::array<float,8> p{};std::array<juce::SmoothedValue<float>,8> smooth;
  Filter hp,mud,body,air,voicePresence,voiceAir,voiceLow,voiceEss,essDetect,essBand,thumpBand,punchBand,wetLow,wetHigh,dc;
  Envelope level,essEnv,fast,slow,opto,subEnv;float comp=1,optoGain=1,glue=1,phase=0,lfo=0,autoGain=1,limiterGain[2]{1,1};
@@ -93,17 +96,19 @@ class Engine {
  std::array<juce::dsp::LinkwitzRileyFilter<float>,2> cross;
  juce::dsp::LinkwitzRileyFilter<float> lowAlign;
 public:
+ void setFocusEnabled(bool enabled){focusEnabled=enabled;}
  void setVocalProfile(int profile){vocalProfile=juce::jlimit(0,2,profile);}
  float grDb=0,wetDuck=1,pitchHz=0;int lookSamples=0;
  void prepare(int k,double rate,int maxBlock,const std::array<float,8>& values){kind=k;sr=rate;p=values;count=0;comp=optoGain=glue=autoGain=1;limiterGain[0]=limiterGain[1]=1;phase=lfo=0;grDb=0;previous[0]=previous[1]=older[0]=older[1]=0;for(auto& a:allpass)for(auto& z:a)z=0;
   for(auto& f:{&hp,&mud,&body,&air,&voicePresence,&voiceAir,&voiceLow,&voiceEss,&essDetect,&essBand,&thumpBand,&punchBand,&wetLow,&wetHigh,&dc})f->reset();
   level.setup(sr,3,120);essEnv.setup(sr,1,70);fast.setup(sr,1,35);slow.setup(sr,25,180);opto.setup(sr,12,240);subEnv.setup(sr,5,100);level.v=essEnv.v=fast.v=slow.v=opto.v=subEnv.v=0;
+  auto focusValues=values;focusValues[7]=100;focus.prepare(sr,focusValues,vocalProfile);focusBlend.reset(sr,.04);focusBlend.setCurrentAndTargetValue(focusEnabled?1.f:0.f);focusPitch.prepare(sr);
   spectral.reset();echo.prepare(sr,2.5);roomDelay.prepare(sr,.2);look.prepare(sr,.02);lookSamples=kind==6?int(sr*.005):0;for(auto& m:minima)m.prepare(lookSamples);
   reverb.setSampleRate(sr);reverb.reset();pitch.prepare(sr);detector.prepare(sr);vocoder.prepare(sr);for(auto& m:micro)m.init(juce::jmax(256,int(sr*.04)));
   juce::dsp::ProcessSpec spec{sr,juce::uint32(maxBlock),2};for(auto& c:cross){c.prepare(spec);c.reset();}cross[0].setCutoffFrequency(200);cross[1].setCutoffFrequency(4000);lowAlign.prepare(spec);lowAlign.setType(juce::dsp::LinkwitzRileyFilterType::allpass);lowAlign.setCutoffFrequency(4000);lowAlign.reset();
   for(size_t i=0;i<8;++i){smooth[i].reset(sr,.025);smooth[i].setCurrentAndTargetValue(values[i]);}configure(values);
  }
- void configure(const std::array<float,8>& values){p=values;for(size_t i=0;i<8;++i)smooth[i].setTargetValue(p[i]);
+ void configure(const std::array<float,8>& values){auto focusValues=values;focusValues[7]=100;focus.configure(focusValues,vocalProfile);focusBlend.setTargetValue(focusEnabled?1.f:0.f);focusPitch.setParams(kind==1 && values[1]>.01f,values[1],120,0,0,0,90,100,0);p=values;for(size_t i=0;i<8;++i)smooth[i].setTargetValue(p[i]);
   hp.hp(sr,kind==0?35+values[4]*.9f:55+values[0]*.4f);mud.bp(sr,280,1.1f);dc.hp(sr,15);thumpBand.lp(sr,160);essBand.bp(sr,kind==0?p[3]:7400,1.3f);punchBand.bp(sr,kind==2?p[3]:3200,.8f);
   essDetect.bp(sr,kind==0?p[3]:7400,1.3f);
   body.peak(sr,135,.65f,kind==1?p[4]:kind==5?p[1]:0);air.shelf(sr,kind==5?p[3]:4500,kind==1?p[5]:kind==5?p[2]:0);wetLow.hp(sr,180);wetHigh.lp(sr,kind==4?p[5]:6500);
@@ -153,6 +158,7 @@ public:
     }
     saturate(d,v[3]*.006f,.2f);
    }
+   float modernL=raw[0],modernR=raw[1];focusPitch.processStereo(modernL,modernR);focus.process(modernL,modernR);const float blend=focusBlend.getNextValue();d[0]+=(modernL-d[0])*blend;d[1]+=(modernR-d[1])*blend;reduction+=(focus.grDb-reduction)*blend;
    float a=wetLow.tick(0,roomDelay.read(0,float(sr*.028))),b=wetLow.tick(1,roomDelay.read(1,float(sr*.031)));roomDelay.push(d[0],d[1]);reverb.processStereo(&a,&b,1);float duck=1/(1+env*8);d[0]+=wetHigh.tick(0,a)*v[6]*.01f*duck;d[1]+=wetHigh.tick(1,b)*v[6]*.01f*duck;
   }
   else if(kind==2){float f=fast.tick(env),sl=slow.tick(env);float attack=juce::jlimit(0.f,1.f,(f-sl)/(sl+.02f));float sustained=1-attack;float amount=v[0]*attack+v[1]*sustained;float g=gain(amount);float expander=env<.004f?juce::jlimit(.2f,1.f,env/.004f):1;
