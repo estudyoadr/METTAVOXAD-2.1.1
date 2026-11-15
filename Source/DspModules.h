@@ -90,13 +90,15 @@ namespace mettavoxad_dsp
         void prepare (double sr)
         {
             sampleRate = sr;
-            juce::dsp::ProcessSpec spec { sr, 512, 2 };
-            reverb.prepare (spec);
+            reverb.setSampleRate (sr);
+            reverb.reset();
             lowCut.reset();
             highCut.reset();
             preDelayBuffer.assign (static_cast<size_t> (sr * 0.5), 0.0f);
             writePos = 0;
             duckEnv = 0.0f;
+            lastDecaySec = lastLowCutHz = lastHighCutHz = -1.0f;
+            lastSizePct = lastDampingPct = -1.0f;
         }
 
         void processStereo (float& left, float& right, float vocalDetectorAbs,
@@ -107,16 +109,27 @@ namespace mettavoxad_dsp
             if (wetMixPct <= 0.1f)
                 return;
 
-            lowCut.setHighPass (sampleRate, lowCutHz, 0.707);
-            highCut.setHighShelf (sampleRate, highCutHz, -9.0);
+            if (lowCutHz != lastLowCutHz) {
+                lowCut.setHighPass (sampleRate, lowCutHz, 0.707);
+                lastLowCutHz = lowCutHz;
+            }
+            if (highCutHz != lastHighCutHz) {
+                highCut.setHighShelf (sampleRate, highCutHz, -9.0);
+                lastHighCutHz = highCutHz;
+            }
 
-            juce::dsp::Reverb::Parameters rp;
-            rp.roomSize = juce::jlimit (0.1f, 0.98f, (sizePct * 0.006f) + (decaySec / 9.0f));
-            rp.damping  = juce::jlimit (0.05f, 0.95f, 1.0f - (dampingPct * 0.0085f));
-            rp.wetLevel = 1.0f;
-            rp.dryLevel = 0.0f;
-            rp.width    = 0.92f;
-            reverb.setParameters (rp);
+            if (sizePct != lastSizePct || decaySec != lastDecaySec || dampingPct != lastDampingPct) {
+                juce::Reverb::Parameters rp;
+                rp.roomSize = juce::jlimit (0.1f, 0.98f, (sizePct * 0.006f) + (decaySec / 9.0f));
+                rp.damping  = juce::jlimit (0.05f, 0.95f, 1.0f - (dampingPct * 0.0085f));
+                rp.wetLevel = 1.0f;
+                rp.dryLevel = 0.0f;
+                rp.width    = 0.92f;
+                reverb.setParameters (rp);
+                lastSizePct = sizePct;
+                lastDecaySec = decaySec;
+                lastDampingPct = dampingPct;
+            }
 
             const int delaySamples = juce::jlimit (1, static_cast<int> (preDelayBuffer.size()) - 2,
                                                    static_cast<int> ((preDelayMs * 0.001f) * sampleRate));
@@ -128,11 +141,9 @@ namespace mettavoxad_dsp
 
             float wetL = lowCut.processSample (0, preDelayBuffer[static_cast<size_t> (readPos)]);
             float wetR = wetL;
-            float* chans[2] = { &wetL, &wetR };
-            juce::AudioBuffer<float> tmp (chans, 2, 1);
-            juce::dsp::AudioBlock<float> block (tmp);
-            juce::dsp::ProcessContextReplacing<float> ctx (block);
-            reverb.process (ctx);
+            // This engine is called per sample. Use JUCE's native sample
+            // pointers instead of constructing a temporary DSP block each time.
+            reverb.processStereo (&wetL, &wetR, 1);
 
             wetL = highCut.processSample (0, wetL);
             wetR = highCut.processSample (1, wetR);
@@ -148,10 +159,13 @@ namespace mettavoxad_dsp
 
     private:
         double sampleRate = 48000.0;
-        juce::dsp::Reverb reverb;
+        juce::Reverb reverb;
         BiquadStereo lowCut, highCut;
         std::vector<float> preDelayBuffer;
         int writePos = 0;
         float duckEnv = 0.0f;
+        float lastDecaySec = -1.0f;
+        float lastLowCutHz = -1.0f, lastHighCutHz = -1.0f;
+        float lastSizePct = -1.0f, lastDampingPct = -1.0f;
     };
 }
