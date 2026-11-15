@@ -169,6 +169,12 @@ void MettavoxadAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     smoothOutGain.reset (sampleRate, 0.018);
     smoothDrive.reset (sampleRate, 0.018);
     smoothCompThresh.reset (sampleRate, 0.018);
+    compEnvState = 0.0f;
+    gateEnvState = 1.0f;
+    compAttackCoeff  = 1.0f - std::exp (-1.0f / static_cast<float> (sampleRate * 0.012));
+    compReleaseCoeff = 1.0f - std::exp (-1.0f / static_cast<float> (sampleRate * 0.090));
+    gateAttackCoeff  = 1.0f - std::exp (-1.0f / static_cast<float> (sampleRate * 0.002));
+    gateReleaseCoeff = 1.0f - std::exp (-1.0f / static_cast<float> (sampleRate * 0.075));
 
     const bool hq = apvts.getRawParameterValue ("qualityOversample")->load() > 0.5f;
     setLatencySamples (hq && apvts.getRawParameterValue("vocalOn")->load()>0.5f && apvts.getRawParameterValue("globalBypass")->load()<0.5f ? static_cast<int> (oversampler4x->getLatencyInSamples()) : 0);
@@ -298,7 +304,8 @@ void MettavoxadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         // 1. Entrada e Limpeza (HPF + Soft Expander/Gate)
         const float inSampleDb = juce::Decibels::gainToDecibels (pkIn, -96.0f);
         const float gateTarget = (inSampleDb >= gateDb) ? 1.0f : 0.15f;
-        gateEnvState = gateEnvState * 0.994f + gateTarget * 0.006f;
+        const float gateCoeff = gateTarget > gateEnvState ? gateAttackCoeff : gateReleaseCoeff;
+        gateEnvState += (gateTarget - gateEnvState) * gateCoeff;
         sL = hpfFilter.processSample (0, sL * gateEnvState);
         sR = hpfFilter.processSample (1, sR * gateEnvState);
 
@@ -329,7 +336,8 @@ void MettavoxadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         sR = deEsserFilter.processSample (1, sR);
 
         const float pkPost = std::max (std::abs (sL), std::abs (sR));
-        compEnvState = compEnvState * 0.992f + pkPost * 0.008f;
+        const float compCoeff = pkPost > compEnvState ? compAttackCoeff : compReleaseCoeff;
+        compEnvState += (pkPost - compEnvState) * compCoeff;
         const float envDb = juce::Decibels::gainToDecibels (compEnvState, -96.0f);
         const float thresh = smoothCompThresh.getNextValue();
         const float ratio  = 1.6f + (compressao * 0.032f);
@@ -354,10 +362,22 @@ void MettavoxadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         vocoderEngine.processStereo (sL, sR);
         masteringEngine.processStereo (sL, sR);
 
-        // 6. Protecao final (-0.1 dBFS)
+        // 6. Soft peak protection. The previous hard clamp flattened loud
+        // transients; this continuous knee preserves them while keeping peaks
+        // below the output ceiling.
         if(vocalOn || atOn || masterOn || (vocOn && vocMode>0 && vocMix>0)) {
-            sL=juce::jlimit(-0.988f,0.988f,sL);
-            sR=juce::jlimit(-0.988f,0.988f,sR);
+            const auto softCeiling = [] (float x) noexcept
+            {
+                constexpr float knee = 0.78f;
+                constexpr float ceiling = 0.988f;
+                const float magnitude = std::abs (x);
+                if (magnitude <= knee) return x;
+                const float compressed = knee + (ceiling - knee)
+                    * std::tanh ((magnitude - knee) / (ceiling - knee));
+                return std::copysign (compressed, x);
+            };
+            sL=softCeiling(sL);
+            sR=softCeiling(sR);
         }
 
         if (std::abs (sL) >= 0.985f || std::abs (sR) >= 0.985f)
@@ -380,7 +400,7 @@ void MettavoxadAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 
 const juce::String MettavoxadAudioProcessor::getProgramName (int index)
 {
-    return (index >= 0 && index < 24) ? juce::String::fromUTF8 (kPresetNames[index]) : "Default";
+    return (index >= 0 && index < 25) ? juce::String::fromUTF8 (kPresetNames[index]) : "Default";
 }
 
 void MettavoxadAudioProcessor::setCurrentProgram (int index)
@@ -435,7 +455,14 @@ void MettavoxadAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
     state.setProperty("currentProgram",currentProgramIndex,nullptr);
+    state.setProperty("selectedUserPreset",selectedUserPreset.load(),nullptr);
     for(int module=0;module<4;++module) state.setProperty("modulePreset"+juce::String(module),modulePresets[module].load(),nullptr);
+    {
+        const juce::ScopedLock lock (userPresetLock);
+        if (state.getChildWithName ("USER_PRESETS").isValid())
+            state.removeChild (state.getChildWithName ("USER_PRESETS"), nullptr);
+        state.addChild (userPresetBank.createCopy(), -1, nullptr);
+    }
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -446,9 +473,80 @@ void MettavoxadAudioProcessor::setStateInformation (const void* data, int sizeIn
     if (xmlState != nullptr && xmlState->hasTagName (apvts.state.getType())) {
         auto state=juce::ValueTree::fromXml(*xmlState);
         currentProgramIndex=juce::jlimit(0,24,static_cast<int>(state.getProperty("currentProgram",0)));
+        selectedUserPreset.store(static_cast<int>(state.getProperty("selectedUserPreset",-1)));
         for(int module=0;module<4;++module) modulePresets[module].store(static_cast<int>(state.getProperty("modulePreset"+juce::String(module),-1)));
+        {
+            const juce::ScopedLock lock (userPresetLock);
+            auto savedBank = state.getChildWithName ("USER_PRESETS");
+            userPresetBank = savedBank.isValid() ? savedBank.createCopy() : juce::ValueTree ("USER_PRESETS");
+            if (selectedUserPreset.load() >= userPresetBank.getNumChildren())
+                selectedUserPreset.store (-1);
+        }
+        if (state.getChildWithName ("USER_PRESETS").isValid())
+            state.removeChild (state.getChildWithName ("USER_PRESETS"), nullptr);
         apvts.replaceState(state);
     }
+}
+
+juce::StringArray MettavoxadAudioProcessor::getUserPresetNames() const
+{
+    const juce::ScopedLock lock (userPresetLock);
+    juce::StringArray names;
+    for (int i = 0; i < userPresetBank.getNumChildren(); ++i)
+        names.add (userPresetBank.getChild (i).getProperty ("name").toString());
+    return names;
+}
+
+int MettavoxadAudioProcessor::saveUserPreset (const juce::String& presetName)
+{
+    const auto name = presetName.trim().substring (0, 48);
+    if (name.isEmpty()) return -1;
+
+    auto snapshot = apvts.copyState();
+    if (snapshot.getChildWithName ("USER_PRESETS").isValid())
+        snapshot.removeChild (snapshot.getChildWithName ("USER_PRESETS"), nullptr);
+
+    const juce::ScopedLock lock (userPresetLock);
+    auto preset = juce::ValueTree ("USER_PRESET");
+    preset.setProperty ("name", name, nullptr);
+    preset.addChild (snapshot, -1, nullptr);
+    userPresetBank.addChild (preset, -1, nullptr);
+    const int index = userPresetBank.getNumChildren() - 1;
+    selectedUserPreset.store (index);
+    for (auto& module : modulePresets) module.store (-1);
+    currentProgramIndex = 24;
+    updateHostDisplay();
+    return index;
+}
+
+bool MettavoxadAudioProcessor::applyUserPreset (int index)
+{
+    juce::ValueTree snapshot;
+    {
+        const juce::ScopedLock lock (userPresetLock);
+        if (index < 0 || index >= userPresetBank.getNumChildren()) return false;
+        snapshot = userPresetBank.getChild (index).getChild (0).createCopy();
+    }
+    if (! snapshot.isValid() || ! snapshot.hasType (apvts.state.getType())) return false;
+    apvts.replaceState (snapshot);
+    selectedUserPreset.store (index);
+    for (auto& module : modulePresets) module.store (-1);
+    currentProgramIndex = 24;
+    updateHostDisplay();
+    return true;
+}
+
+bool MettavoxadAudioProcessor::deleteUserPreset (int index)
+{
+    {
+        const juce::ScopedLock lock (userPresetLock);
+        if (index < 0 || index >= userPresetBank.getNumChildren()) return false;
+        userPresetBank.removeChild (index, nullptr);
+        const int selected = selectedUserPreset.load();
+        selectedUserPreset.store (selected == index ? -1 : (selected > index ? selected - 1 : selected));
+    }
+    updateHostDisplay();
+    return true;
 }
 
 juce::AudioProcessorEditor* MettavoxadAudioProcessor::createEditor()
@@ -500,6 +598,7 @@ void MettavoxadAudioProcessor::applyModulePreset(int module,int index) {
     if(module==3) if(auto* p=apvts.getParameter("vocMode")) p->setValueNotifyingHost(p->convertTo0to1(static_cast<float>(preset.mode)));
     if(auto* p=apvts.getParameter(onIds[module])) p->setValueNotifyingHost(1);
     modulePresets[module].store(index);
+    selectedUserPreset.store(-1);
 }
 void MettavoxadAudioProcessor::soloModule(int module) {
     for(int m=0;m<4;++m) if(auto* p=apvts.getParameter(onIds[m])) p->setValueNotifyingHost(m==module?1.0f:0.0f);
