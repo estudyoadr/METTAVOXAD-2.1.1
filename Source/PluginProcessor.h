@@ -41,6 +41,11 @@ public:
 
     juce::StringArray getModulePresetNames(int module) const;
     void applyModulePreset(int module,int index);
+    juce::StringArray getUserPresetNames() const;
+    int saveUserPreset(const juce::String& name);
+    bool applyUserPreset(int index);
+    bool deleteUserPreset(int index);
+    int getSelectedUserPreset() const noexcept { return selectedUserPreset.load(); }
     void soloModule(int module);
     int getModulePresetIndex(int module) const {return modulePresets[juce::jlimit(0,3,module)].load();}
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
@@ -60,6 +65,11 @@ public:
 
 private:
     std::array<std::atomic<int>,4> modulePresets{{-1,-1,-1,-1}};
+    // Personal presets travel in the host's serialized plugin state. No preset
+    // bank is written into Program Files, AppData, or the plugin binary.
+    juce::ValueTree userPresetBank { "USER_PRESETS" };
+    mutable juce::CriticalSection userPresetLock;
+    std::atomic<int> selectedUserPreset { -1 };
     int currentProgramIndex = 0;
     double currentSampleRate = 48000.0;
     bool lastHqOversamplingState = false;
@@ -72,6 +82,8 @@ private:
     juce::SmoothedValue<float> smoothInGain, smoothOutGain, smoothDrive, smoothCompThresh;
     float compEnvState = 0.0f;
     float gateEnvState = 1.0f;
+    float compAttackCoeff = 0.0f, compReleaseCoeff = 0.0f;
+    float gateAttackCoeff = 0.0f, gateReleaseCoeff = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MettavoxadAudioProcessor)
 };
