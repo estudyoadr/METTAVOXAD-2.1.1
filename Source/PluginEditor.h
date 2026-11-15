@@ -88,6 +88,7 @@ private:
     std::array<juce::TextButton,4> savePresetButtons,deletePresetButtons;
     std::array<juce::ComboBox,4> presets;
     juce::StringArray displayedUserPresetNames;
+    juce::TextEditor presetNameEditor;
     juce::ComboBox robotMode;
     juce::ToggleButton hq{"HQ 4x"},bypass{"BYPASS GLOBAL"};
     juce::Label status;
