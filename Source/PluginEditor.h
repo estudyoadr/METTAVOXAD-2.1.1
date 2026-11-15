@@ -78,13 +78,16 @@ public:
 private:
     void timerCallback() override;
     void showTab(int);
+    void rebuildPresetMenu(int module);
     void setupKnob(int module,int slot,const char* id,const char* label);
     MettavoxadAudioProcessor& processor;
     MettavoxPremiumLook premiumLook;
     std::array<juce::Slider,32> knobs;
     std::array<juce::Label,32> labels;
     std::array<juce::TextButton,4> tabs,moduleButtons,soloButtons;
+    std::array<juce::TextButton,4> savePresetButtons,deletePresetButtons;
     std::array<juce::ComboBox,4> presets;
+    juce::StringArray displayedUserPresetNames;
     juce::ComboBox robotMode;
     juce::ToggleButton hq{"HQ 4x"},bypass{"BYPASS GLOBAL"};
     juce::Label status;
