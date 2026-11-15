@@ -59,14 +59,17 @@ MettavoxadAudioProcessorEditor::MettavoxadAudioProcessorEditor(MettavoxadAudioPr
         savePresetButtons[m].setColour(juce::TextButton::buttonColourId,juce::Colour(0xff173443));
         savePresetButtons[m].setColour(juce::TextButton::textColourOnId,juce::Colour(colours[m]));
         savePresetButtons[m].onClick=[this,m] {
-            juce::AlertWindow prompt ("Salvar preset", "Guarde esta configuração dentro do estado do plug-in.", juce::AlertWindow::NoIcon);
-            prompt.addTextEditor ("presetName", "Meu preset", "Nome");
-            prompt.addButton ("Salvar", 1, juce::KeyPress (juce::KeyPress::returnKey));
-            prompt.addButton ("Cancelar", 0, juce::KeyPress (juce::KeyPress::escapeKey));
-            if (prompt.runModalLoop() == 1) {
-                const int saved=processor.saveUserPreset(prompt.getTextEditorContents("presetName"));
-                if(saved>=0) for(int tab=0;tab<4;++tab) rebuildPresetMenu(tab);
+            const auto name=presetNameEditor.getText().trim();
+            if(name.isEmpty()) {
+                status.setText("DIGITE UM NOME PARA SALVAR O PRESET",juce::dontSendNotification);
+                return;
+            }
+            const int saved=processor.saveUserPreset(name);
+            if(saved>=0) {
+                presetNameEditor.clear();
+                for(int tab=0;tab<4;++tab) rebuildPresetMenu(tab);
                 timerCallback();
+                status.setText("PRESET SALVO NO ESTADO DO PLUG-IN — SALVE O PROJETO",juce::dontSendNotification);
             }
         };
         addAndMakeVisible(savePresetButtons[m]);
@@ -86,6 +89,12 @@ MettavoxadAudioProcessorEditor::MettavoxadAudioProcessorEditor(MettavoxadAudioPr
     robotMode.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xff12222d));
     robotMode.setColour(juce::ComboBox::textColourId,juce::Colour(colours[3]));addAndMakeVisible(robotMode);
     modeAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.apvts,"vocMode",robotMode);
+    presetNameEditor.setName("preset_name");
+    presetNameEditor.setTextToShowWhenEmpty("Nome do preset",juce::Colour(0xff7893a2));
+    presetNameEditor.setColour(juce::TextEditor::backgroundColourId,juce::Colour(0xff12222d));
+    presetNameEditor.setColour(juce::TextEditor::textColourId,juce::Colour(0xffe6f7ff));
+    presetNameEditor.setColour(juce::TextEditor::outlineColourId,juce::Colour(0xff304554));
+    addAndMakeVisible(presetNameEditor);
     addAndMakeVisible(hq);addAndMakeVisible(bypass);addAndMakeVisible(status);
     hq.setName("qualityOversample");bypass.setName("globalBypass");
     buttonAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"qualityOversample",hq));
@@ -127,7 +136,7 @@ void MettavoxadAudioProcessorEditor::showTab(int index) {
         deletePresetButtons[m].setVisible(m==currentTab);
         for(int k=0;k<8;++k){knobs[m*8+k].setVisible(m==currentTab);labels[m*8+k].setVisible(m==currentTab);}
     }
-    robotMode.setVisible(currentTab==3);resized();timerCallback();repaint();
+    robotMode.setVisible(currentTab==3);presetNameEditor.setVisible(true);resized();timerCallback();repaint();
 }
 void MettavoxadAudioProcessorEditor::rebuildPresetMenu(int module) {
     if(module<0 || module>3) return;
@@ -214,16 +223,18 @@ void MettavoxadAudioProcessorEditor::resized() {
         moduleButtons[m].setBounds(x,56,cell-41,22);soloButtons[m].setBounds(x+cell-39,56,39,22);
         tabs[m].setBounds(x,83,cell,22);
         if(currentTab==3) {
-            presets[m].setBounds(22,117,220,23);
-            savePresetButtons[m].setBounds(247,117,64,23);
-            deletePresetButtons[m].setBounds(314,117,65,23);
+            presets[m].setBounds(22,117,154,23);
+            presetNameEditor.setBounds(182,117,116,23);
+            savePresetButtons[m].setBounds(304,117,56,23);
+            deletePresetButtons[m].setBounds(366,117,56,23);
         } else {
-            presets[m].setBounds(22,117,w-280,23);
-            savePresetButtons[m].setBounds(w-250,117,74,23);
-            deletePresetButtons[m].setBounds(w-168,117,74,23);
+            presets[m].setBounds(22,117,w-435,23);
+            presetNameEditor.setBounds(w-409,117,140,23);
+            savePresetButtons[m].setBounds(w-263,117,74,23);
+            deletePresetButtons[m].setBounds(w-181,117,74,23);
         }
     }
-    robotMode.setBounds(386,117,w-412,23);
+    robotMode.setBounds(430,117,w-456,23);
     const int knobCell=(w-96)/4,row=(h-177)/2;
     for(int m=0;m<4;++m) for(int k=0;k<8;++k) {
         const int x=22+(k%4)*knobCell,y=145+(k/4)*row;
